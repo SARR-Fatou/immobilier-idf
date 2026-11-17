@@ -15,7 +15,7 @@ Projet de **Data Analytics et Machine Learning** réalisé par [Fatou Sarr](http
 | Lignes brutes | 229 275 |
 | Ventes uniquement | 81 928 mutations |
 | Ventes d'un seul appartement (dépendances acceptées) | 54 171 |
-| Valeurs renseignées et coordonnées GPS valides | ≈ 53 700 |
+| Valeurs renseignées et coordonnées GPS valides | 53 739 |
 | **Après retrait des valeurs aberrantes** | **51 200** |
 
 ## Résultats de l'analyse
