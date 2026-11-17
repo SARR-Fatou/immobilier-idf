@@ -1,0 +1,45 @@
+{
+  "ventes_analysees": 51200,
+  "prix_m2_median": {
+    "Paris": 9553,
+    "Hauts-de-Seine": 6395,
+    "Val-de-Marne": 4696,
+    "Seine-Saint-Denis": 4000
+  },
+  "arrondissement_plus_cher": [
+    "6e",
+    13603
+  ],
+  "arrondissement_moins_cher": [
+    "19e",
+    7822
+  ],
+  "modeles": {
+    "Référence (médiane commune × surface)": {
+      "MAE (€)": 72124.512,
+      "Erreur médiane (%)": 14.204,
+      "MAPE (%)": 20.152,
+      "R² (log)": 0.861
+    },
+    "Régression Ridge": {
+      "MAE (€)": 95436.245,
+      "Erreur médiane (%)": 17.649,
+      "MAPE (%)": 24.546,
+      "R² (log)": 0.807
+    },
+    "Random Forest": {
+      "MAE (€)": 68001.017,
+      "Erreur médiane (%)": 13.01,
+      "MAPE (%)": 18.414,
+      "R² (log)": 0.876
+    },
+    "Gradient Boosting": {
+      "MAE (€)": 67083.8,
+      "Erreur médiane (%)": 12.916,
+      "MAPE (%)": 18.126,
+      "R² (log)": 0.88
+    }
+  },
+  "meilleur_modele": "Gradient Boosting",
+  "part_a_moins_de_15pct": 0.57
+}
