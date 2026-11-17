@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prix de l'immobilier en Île-de-France — Analyse & estimation</title>
+<meta name="description" content="Tableau de bord interactif : prix des appartements à Paris et en petite couronne (DVF 2024), carte, simulateur d'estimation et comparaison de modèles de Machine Learning. Projet de Fatou Sarr.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root {
+    --bg: #f6f0e8; --surface: #fffaf4; --surface-2: #efe5d9; --text: #2a1c14; --muted: #6e5b4e;
+    --line: rgba(42,28,20,.12); --accent: #b4532a; --accent-soft: rgba(180,83,42,.1);
+    --c75: #7a2e3b; --c92: #b4532a; --c94: #d9935f; --c93: #6b8f71;
+    --serif: 'Fraunces', Georgia, serif; --sans: 'Inter', system-ui, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16100c; --surface: #201813; --surface-2: #2a201a; --text: #f3e8dc; --muted: #b9a696;
+      --line: rgba(243,232,220,.12); --accent: #e48b5c; --accent-soft: rgba(228,139,92,.14);
+      --c75: #e07a8b; --c92: #e48b5c; --c94: #f0c08a; --c93: #8fc79a; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16100c; --surface: #201813; --surface-2: #2a201a; --text: #f3e8dc; --muted: #b9a696;
+    --line: rgba(243,232,220,.12); --accent: #e48b5c; --accent-soft: rgba(228,139,92,.14);
+    --c75: #e07a8b; --c92: #e48b5c; --c94: #f0c08a; --c93: #8fc79a; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 16px; line-height: 1.6; }
+  .wrap { width: min(1160px, 100% - 32px); margin-inline: auto; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  h1, h2 { font-family: var(--serif); font-weight: 500; margin: 0; line-height: 1.15; }
+  header { padding: 40px 0 24px; }
+  .kicker { font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); font-weight: 600; }
+  h1 { font-size: clamp(2rem, 4.5vw, 3rem); margin: 8px 0 12px; }
+  .intro { color: var(--muted); max-width: 48em; margin: 0; }
+  .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; font-size: .9rem; }
+  .chipl { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); text-decoration: none; color: var(--text); background: var(--surface); }
+  .chipl:hover { border-color: var(--accent); }
+
+  .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin: 8px 0 18px; }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; position: relative; overflow: hidden; }
+  .kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--k, var(--accent)); }
+  .kpi small { display: block; color: var(--muted); font-size: .8rem; }
+  .kpi b { display: block; font-family: var(--serif); font-weight: 500; font-size: 1.9rem; line-height: 1.2; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .kpi span { font-size: .8rem; color: var(--muted); }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px; min-width: 0; }
+  .card h2 { font-size: 1.25rem; margin-bottom: 4px; }
+  .card p.sub { color: var(--muted); font-size: .88rem; margin: 0 0 14px; }
+  .grid { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .chart-box { position: relative; height: 280px; }
+
+  /* Simulateur */
+  .sim { display: flex; flex-direction: column; gap: 16px; background: linear-gradient(160deg, var(--accent-soft), var(--surface) 55%); }
+  .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em; }
+  select, input[type="number"] {
+    width: 100%; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px 12px;
+  }
+  select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .surf { display: flex; gap: 12px; align-items: center; }
+  .surf input[type="range"] { flex: 1; accent-color: var(--accent); }
+  .surf input[type="number"] { width: 92px; text-align: right; }
+  .result { border-radius: 16px; padding: 20px; background: var(--surface); border: 1px solid var(--line); }
+  .result small { color: var(--muted); font-size: .8rem; display: block; }
+  .result .est { font-family: var(--serif); font-size: clamp(2.2rem, 5vw, 3rem); line-height: 1.1; margin: 4px 0; font-variant-numeric: tabular-nums; }
+  .range { position: relative; height: 10px; border-radius: 10px; background: var(--surface-2); margin: 14px 0 6px; }
+  .range i { position: absolute; top: 0; bottom: 0; border-radius: 10px; background: linear-gradient(90deg, var(--c94), var(--c75)); transition: left .4s, width .4s; }
+  .range-lbl { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .range-lbl span { white-space: nowrap; }
+  .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; font-size: .88rem; }
+  .facts div { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+  .facts b { display: block; font-variant-numeric: tabular-nums; }
+  .note { font-size: .78rem; color: var(--muted); margin: 0; }
+
+  #map { height: 520px; border-radius: 12px; z-index: 0; }
+  .map-tools { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .seg button { font: inherit; font-size: .82rem; border: 0; background: transparent; color: var(--muted); padding: 6px 14px; cursor: pointer; }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .scale { display: flex; align-items: center; gap: 8px; font-size: .78rem; color: var(--muted); margin-top: 10px; }
+  .scale .grad { flex: 1; max-width: 260px; height: 8px; border-radius: 8px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: .76rem; text-transform: uppercase; letter-spacing: .06em; cursor: pointer; user-select: none; white-space: nowrap; }
+  th.n, td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  th[aria-sort]::after { content: " ↕"; opacity: .4; }
+  th[aria-sort="ascending"]::after { content: " ↑"; opacity: 1; }
+  th[aria-sort="descending"]::after { content: " ↓"; opacity: 1; }
+  .tbl-wrap { max-height: 420px; overflow: auto; }
+  .tbl-tools { display: flex; gap: 10px; margin-bottom: 10px; }
+  .tbl-tools input { flex: 1; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  tr.click { cursor: pointer; } tr.click:hover td { background: var(--surface-2); }
+
+  .models { display: grid; gap: 10px; }
+  .model { display: grid; grid-template-columns: 200px 1fr 64px; gap: 12px; align-items: center; font-size: .9rem; }
+  .model .bar { height: 12px; border-radius: 12px; background: var(--surface-2); overflow: hidden; }
+  .model .bar i { display: block; height: 100%; border-radius: 12px; background: var(--muted); }
+  .model.best .bar i { background: var(--accent); }
+  .model.best span:first-child { font-weight: 600; }
+  .model b { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .step { background: var(--surface-2); border-radius: 14px; padding: 16px; }
+  .step b { font-family: var(--serif); font-weight: 500; font-size: 1.5rem; display: block; font-variant-numeric: tabular-nums; }
+  .step span { font-size: .85rem; color: var(--muted); }
+  footer { padding: 32px 0 48px; color: var(--muted); font-size: .88rem; }
+  .leaflet-popup-content { font-family: var(--sans); font-size: .85rem; }
+
+  @media (max-width: 980px) { .kpis { grid-template-columns: repeat(3, 1fr); } .grid, .row2 { grid-template-columns: 1fr; } .steps { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .range-lbl span:nth-child(2) { display: none; } .kpis { grid-template-columns: 1fr 1fr; } .kpi b { font-size: 1.5rem; } #map { height: 380px; } .model { grid-template-columns: 1fr 52px; } .model .bar { grid-column: 1 / -1; grid-row: 2; } }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="kicker">Projet Data Analytics &amp; Machine Learning · Fatou Sarr</div>
+  <h1>Prix de l'immobilier à Paris et en petite couronne</h1>
+  <p class="intro">Analyse de <strong id="h-ventes">51 200</strong> ventes d'appartements réalisées en 2024 (open data DVF), nettoyées et analysées en Python. Explorez la carte, comparez les communes et estimez le prix d'un appartement.</p>
+  <div class="meta">
+    <a class="chipl" href="https://github.com/SARR-Fatou/immobilier-idf/blob/main/notebooks/analyse_immobilier_idf.ipynb">Notebook d'analyse ↗</a>
+    <a class="chipl" href="https://github.com/SARR-Fatou/immobilier-idf">Code source ↗</a>
+    <a class="chipl" href="https://sarr-fatou.github.io/">Portfolio ↗</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="kpis" id="kpis" aria-label="Prix médian au m² par département"></section>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Carte des prix au m²</h2>
+      <p class="sub">Cliquez sur une commune pour l'estimer dans le simulateur.</p>
+      <div class="map-tools">
+        <div class="seg" role="group" aria-label="Affichage de la carte">
+          <button type="button" class="on" data-layer="communes">Par commune</button>
+          <button type="button" data-layer="ventes">Ventes individuelles</button>
+        </div>
+      </div>
+      <div id="map" role="img" aria-label="Carte des prix au m² par commune"></div>
+      <div class="scale"><span id="sc-min"></span><span class="grad" id="sc-grad"></span><span id="sc-max"></span></div>
+    </section>
+
+    <section class="card sim" aria-labelledby="sim-title">
+      <div>
+        <h2 id="sim-title">Simulateur d'estimation</h2>
+        <p class="sub" style="margin:0">Choisissez une commune et une surface.</p>
+      </div>
+      <div class="field">
+        <label for="s-commune">Commune ou arrondissement</label>
+        <select id="s-commune"></select>
+      </div>
+      <div class="field">
+        <label for="s-surface">Surface</label>
+        <div class="surf">
+          <input type="range" id="s-range" min="10" max="200" step="1" value="45" aria-label="Surface en m²">
+          <input type="number" id="s-surface" min="10" max="300" value="45" aria-label="Surface en m²">
+          <span>m²</span>
+        </div>
+      </div>
+      <div class="result" aria-live="polite">
+        <small>Prix estimé</small>
+        <div class="est" id="r-est">—</div>
+        <small id="r-m2"></small>
+        <div class="range"><i id="r-bar"></i></div>
+        <div class="range-lbl"><span id="r-lo"></span><span>Fourchette (50 % des ventes)</span><span id="r-hi"></span></div>
+        <div class="facts">
+          <div><span class="note">Ventes en 2024</span><b id="r-n">—</b></div>
+          <div><span class="note">Prix médian d'une vente</span><b id="r-med">—</b></div>
+        </div>
+      </div>
+      <p class="note">Méthode : prix au m² médian de la commune × surface × effet de la taille du logement, calculés sur les ventes réelles. Estimation indicative : l'état du bien, l'étage ou le DPE ne sont pas dans les données.</p>
+    </section>
+  </div>
+
+  <div class="row2">
+    <section class="card">
+      <h2>Paris, arrondissement par arrondissement</h2>
+      <p class="sub">Prix médian au m² en 2024.</p>
+      <div class="chart-box" style="height:520px"><canvas id="c-arr" aria-label="Prix médian au m² par arrondissement"></canvas></div>
+    </section>
+    <section class="card">
+      <h2>Toutes les communes</h2>
+      <p class="sub">Cliquez sur un en-tête pour trier, sur une ligne pour l'estimer.</p>
+      <div class="tbl-tools"><input type="search" id="t-search" placeholder="Rechercher une commune…" aria-label="Rechercher une commune"></div>
+      <div class="tbl-wrap">
+        <table id="t-communes">
+          <thead><tr>
+            <th data-k="nom" aria-sort="none">Commune</th>
+            <th data-k="m2" class="n" aria-sort="descending">Prix/m²</th>
+            <th data-k="prix" class="n" aria-sort="none">Prix médian</th>
+            <th data-k="ventes" class="n" aria-sort="none">Ventes</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="row2">
+    <section class="card">
+      <h2>Distribution des prix au m²</h2>
+      <p class="sub">Nombre de ventes par tranche de 500 €/m².</p>
+      <div class="chart-box"><canvas id="c-hist" aria-label="Distribution des prix au m² par département"></canvas></div>
+    </section>
+    <section class="card">
+      <h2>Saisonnalité</h2>
+      <p class="sub">Ventes par mois et prix médian au m².</p>
+      <div class="chart-box"><canvas id="c-month" aria-label="Ventes et prix par mois"></canvas></div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:16px">
+    <h2>Modèles de Machine Learning comparés</h2>
+    <p class="sub">Erreur médiane sur 10 240 ventes jamais vues par les modèles (plus c'est court, mieux c'est).</p>
+    <div class="models" id="models"></div>
+    <p class="note" style="margin-top:14px">Le Gradient Boosting est le plus précis, mais son avance sur la règle simple « prix médian de la commune × surface » reste modeste : sans informations sur l'état du bien, l'étage ou le DPE, une partie du prix reste imprévisible.</p>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <h2>Du fichier brut aux données propres</h2>
+    <p class="sub">Étapes de nettoyage appliquées en Python (pandas).</p>
+    <div class="steps">
+      <div class="step"><b>229 275</b><span>lignes brutes (Paris, 92, 93, 94)</span></div>
+      <div class="step"><b>81 928</b><span>ventes classiques (hors échanges, adjudications…)</span></div>
+      <div class="step"><b>54 171</b><span>ventes d'un seul appartement</span></div>
+      <div class="step"><b id="st-final">51 200</b><span>après retrait des valeurs aberrantes et erreurs GPS</span></div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  Données : <a href="https://www.data.gouv.fr/fr/datasets/demandes-de-valeurs-foncieres-geolocalisees/">Demandes de Valeurs Foncières géolocalisées (DGFiP / Etalab)</a> · Fonds de carte © OpenStreetMap · Réalisé par <a href="https://sarr-fatou.github.io/">Fatou Sarr</a>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function () {
+  var css = getComputedStyle(document.documentElement);
+  var C = function (n) { return css.getPropertyValue(n).trim(); };
+  var fmt = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+  var eur = function (v) { return fmt.format(v) + ' €'; };
+  var $ = function (id) { return document.getElementById(id); };
+  var DEP_COLORS = { 'Paris': C('--c75'), 'Hauts-de-Seine': C('--c92'), 'Val-de-Marne': C('--c94'), 'Seine-Saint-Denis': C('--c93') };
+  var MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+  Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+  Chart.defaults.color = C('--muted');
+  Chart.defaults.borderColor = C('--line');
+
+  // Échelle de couleurs du prix au m² (sable → terracotta → prune)
+  var STOPS = [[3500, [246, 228, 190]], [6000, [233, 160, 100]], [9000, [190, 84, 52]], [12500, [92, 30, 60]]];
+  function colorFor(v) {
+    if (v <= STOPS[0][0]) return 'rgb(' + STOPS[0][1] + ')';
+    for (var i = 1; i < STOPS.length; i++) {
+      if (v <= STOPS[i][0]) {
+        var a = STOPS[i - 1], b = STOPS[i], t = (v - a[0]) / (b[0] - a[0]);
+        return 'rgb(' + a[1].map(function (x, k) { return Math.round(x + t * (b[1][k] - x)); }).join(',') + ')';
+      }
+    }
+    return 'rgb(' + STOPS[STOPS.length - 1][1] + ')';
+  }
+  $('sc-grad').style.background = 'linear-gradient(90deg,' + STOPS.map(function (s) { return 'rgb(' + s[1] + ')'; }).join(',') + ')';
+  $('sc-min').textContent = '≤ ' + fmt.format(STOPS[0][0]) + ' €/m²';
+  $('sc-max').textContent = '≥ ' + fmt.format(STOPS[STOPS.length - 1][0]) + ' €/m²';
+
+  Promise.all([fetch('data/dashboard.json').then(function (r) { return r.json(); }), document.fonts ? document.fonts.ready : null]).then(function (res) {
+    var D = res[0];
+    $('h-ventes').textContent = fmt.format(D.ventes);
+    $('st-final').textContent = fmt.format(D.ventes);
+
+    // KPI
+    $('kpis').innerHTML = '<div class="kpi"><small>Ventes analysées</small><b>' + fmt.format(D.ventes) + '</b><span>appartements, 2024</span></div>' +
+      D.departements.map(function (d) {
+        return '<div class="kpi" style="--k:' + DEP_COLORS[d.departement] + '"><small>' + d.departement + '</small><b>' + eur(d.m2) +
+          '</b><span>/m² · ' + fmt.format(d.ventes) + ' ventes</span></div>';
+      }).join('');
+
+    // ---------- Simulateur ----------
+    var byName = {};
+    D.communes.forEach(function (c) { byName[c.nom] = c; });
+    var sel = $('s-commune');
+    ['Paris', 'Hauts-de-Seine', 'Seine-Saint-Denis', 'Val-de-Marne'].forEach(function (dep) {
+      var g = document.createElement('optgroup'); g.label = dep;
+      D.communes.filter(function (c) { return c.dep === dep; })
+        .sort(function (a, b) { return a.nom.localeCompare(b.nom, 'fr', { numeric: true }); })
+        .forEach(function (c) { var o = document.createElement('option'); o.value = c.nom; o.textContent = c.nom.replace('Paris ', 'Paris ') ; g.appendChild(o); });
+      sel.appendChild(g);
+    });
+    sel.value = byName['Paris 11e'] ? 'Paris 11e' : D.communes[0].nom;
+
+    function coefSurface(s) {
+      for (var i = 0; i < D.effet_surface.length; i++) {
+        var t = D.effet_surface[i];
+        if (s >= t.min && s < t.max) return t.coef;
+      }
+      return 1;
+    }
+    function updateSim() {
+      var c = byName[sel.value]; if (!c) return;
+      var s = Math.max(10, Math.min(300, +$('s-surface').value || 45));
+      var k = coefSurface(s);
+      var est = c.m2 * s * k, lo = c.q1 * s * k, hi = c.q3 * s * k;
+      var round = function (v) { return Math.round(v / 1000) * 1000; };
+      $('r-est').textContent = eur(round(est));
+      $('r-m2').textContent = 'soit ' + eur(c.m2 * k) + ' /m² · ' + c.nom;
+      $('r-lo').textContent = eur(round(lo));
+      $('r-hi').textContent = eur(round(hi));
+      var maxScale = c.q3 * s * k * 1.25;
+      $('r-bar').style.left = (100 * lo / maxScale) + '%';
+      $('r-bar').style.width = (100 * (hi - lo) / maxScale) + '%';
+      $('r-n').textContent = fmt.format(c.ventes);
+      $('r-med').textContent = eur(c.prix) + ' (' + c.surface + ' m²)';
+    }
+    function setSurface(v) { $('s-surface').value = v; $('s-range').value = Math.min(200, v); updateSim(); }
+    $('s-range').addEventListener('input', function (e) { setSurface(+e.target.value); });
+    $('s-surface').addEventListener('input', function (e) { $('s-range').value = Math.min(200, +e.target.value || 10); updateSim(); });
+    sel.addEventListener('change', updateSim);
+    function choose(nom) {
+      sel.value = nom; updateSim();
+      if (window.innerWidth < 980) document.querySelector('.sim').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    updateSim();
+
+    // ---------- Carte ----------
+    var map = L.map('map', { preferCanvas: true, scrollWheelZoom: false }).setView([48.855, 2.36], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenStreetMap' }).addTo(map);
+    var communesLayer = L.layerGroup(D.communes.map(function (c) {
+      return L.circleMarker([c.lat, c.lon], {
+        radius: 5 + Math.sqrt(c.ventes) / 4, weight: 1, color: '#fff', fillOpacity: .88, fillColor: colorFor(c.m2)
+      }).bindTooltip('<strong>' + c.nom + '</strong><br>' + eur(c.m2) + ' /m² · ' + fmt.format(c.ventes) + ' ventes')
+        .on('click', function () { choose(c.nom); });
+    })).addTo(map);
+    var ventesLayer = L.layerGroup(D.points.map(function (p) {
+      return L.circleMarker([p[0], p[1]], { radius: 2.4, weight: 0, fillOpacity: .75, fillColor: colorFor(p[2]) });
+    }));
+    document.querySelectorAll('.seg button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('.seg button').forEach(function (x) { x.classList.toggle('on', x === b); });
+        if (b.dataset.layer === 'ventes') { map.removeLayer(communesLayer); ventesLayer.addTo(map); }
+        else { map.removeLayer(ventesLayer); communesLayer.addTo(map); }
+      });
+    });
+
+    // ---------- Arrondissements ----------
+    var arr = D.communes.filter(function (c) { return c.dep === 'Paris'; }).sort(function (a, b) { return b.m2 - a.m2; });
+    new Chart($('c-arr'), {
+      type: 'bar',
+      data: { labels: arr.map(function (c) { return c.nom.replace('Paris ', ''); }),
+              datasets: [{ data: arr.map(function (c) { return c.m2; }), backgroundColor: arr.map(function (c) { return colorFor(c.m2); }), borderRadius: 5 }] },
+      options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false },
+                 tooltip: { callbacks: { label: function (it) { return eur(it.raw) + ' /m²'; } } } },
+                 onClick: function (e, els) { if (els.length) choose(arr[els[0].index].nom); },
+                 scales: { x: { grid: { color: C('--line') }, ticks: { callback: function (v) { return fmt.format(v); } } }, y: { grid: { display: false } } } }
+    });
+
+    // ---------- Tableau des communes ----------
+    var sortKey = 'm2', sortDir = -1, query = '';
+    function renderTable() {
+      var rows = D.communes.filter(function (c) { return c.nom.toLowerCase().indexOf(query) !== -1; })
+        .sort(function (a, b) {
+          var x = a[sortKey], y = b[sortKey];
+          return (typeof x === 'string' ? x.localeCompare(y, 'fr', { numeric: true }) : x - y) * sortDir;
+        });
+      document.querySelector('#t-communes tbody').innerHTML = rows.map(function (c) {
+        return '<tr class="click" data-nom="' + c.nom.replace(/"/g, '&quot;') + '"><td><span class="dot" style="background:' + colorFor(c.m2) + '"></span>' + c.nom +
+          '</td><td class="n">' + eur(c.m2) + '</td><td class="n">' + eur(c.prix) + '</td><td class="n">' + fmt.format(c.ventes) + '</td></tr>';
+      }).join('');
+    }
+    document.querySelectorAll('#t-communes th').forEach(function (th) {
+      th.addEventListener('click', function () {
+        var k = th.dataset.k;
+        sortDir = (sortKey === k) ? -sortDir : (k === 'nom' ? 1 : -1);
+        sortKey = k;
+        document.querySelectorAll('#t-communes th').forEach(function (x) {
+          x.setAttribute('aria-sort', x === th ? (sortDir === 1 ? 'ascending' : 'descending') : 'none');
+        });
+        renderTable();
+      });
+    });
+    $('t-search').addEventListener('input', function (e) { query = e.target.value.trim().toLowerCase(); renderTable(); });
+    document.querySelector('#t-communes tbody').addEventListener('click', function (e) {
+      var tr = e.target.closest('tr'); if (tr) choose(tr.dataset.nom);
+    });
+    renderTable();
+
+    // ---------- Histogramme ----------
+    var deps = ['Paris', 'Hauts-de-Seine', 'Val-de-Marne', 'Seine-Saint-Denis'];
+    new Chart($('c-hist'), {
+      type: 'line',
+      data: { labels: D.histogramme.bins.map(function (b) { return fmt.format(b); }),
+              datasets: deps.map(function (d) {
+                return { label: d, data: D.histogramme.series[d], borderColor: DEP_COLORS[d], backgroundColor: DEP_COLORS[d] + '22',
+                         fill: true, tension: .35, pointRadius: 0, borderWidth: 2 };
+              }) },
+      options: { maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                 plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } },
+                            tooltip: { callbacks: { title: function (it) { return it[0].label + ' – ' + fmt.format(+it[0].label.replace(/\s/g, '') + 500) + ' €/m²'; } } } },
+                 scales: { x: { title: { display: true, text: 'Prix au m² (€)' }, ticks: { maxTicksLimit: 9 }, grid: { display: false } },
+                           y: { title: { display: true, text: 'Ventes' }, grid: { color: C('--line') } } } }
+    });
+
+    // ---------- Saisonnalité ----------
+    new Chart($('c-month'), {
+      data: { labels: D.mensuel.map(function (m) { return MOIS[m.mois - 1]; }),
+              datasets: [
+                { type: 'bar', label: 'Ventes', data: D.mensuel.map(function (m) { return m.ventes; }), backgroundColor: C('--accent') + '55', borderRadius: 5, yAxisID: 'y' },
+                { type: 'line', label: 'Prix médian au m²', data: D.mensuel.map(function (m) { return m.m2; }), borderColor: C('--c75'), backgroundColor: C('--c75'), tension: .35, yAxisID: 'y2' }
+              ] },
+      options: { maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                 plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } },
+                 scales: { x: { grid: { display: false } }, y: { title: { display: true, text: 'Ventes' }, grid: { color: C('--line') } },
+                           y2: { position: 'right', title: { display: true, text: '€/m²' }, grid: { display: false },
+                                 ticks: { callback: function (v) { return fmt.format(v); } } } } }
+    });
+
+    // ---------- Modèles ----------
+    var names = Object.keys(D.modeles);
+    var maxErr = Math.max.apply(null, names.map(function (n) { return D.modeles[n]['Erreur médiane (%)']; }));
+    $('models').innerHTML = names.map(function (n) {
+      var v = D.modeles[n]['Erreur médiane (%)'];
+      return '<div class="model' + (n === D.meilleur_modele ? ' best' : '') + '"><span>' + n + (n === D.meilleur_modele ? ' ★' : '') +
+        '</span><span class="bar"><i style="width:' + (100 * v / maxErr) + '%"></i></span><b>' + v.toFixed(1).replace('.', ',') + ' %</b></div>';
+    }).join('');
+  }).catch(function (e) { console.error(e); });
+})();
+</script>
+</body>
+</html>

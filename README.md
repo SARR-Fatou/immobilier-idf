@@ -4,6 +4,8 @@ Projet de **Data Analytics et Machine Learning** réalisé par [Fatou Sarr](http
 
 **Question métier :** combien vaut un appartement à Paris et en petite couronne, et quels facteurs expliquent son prix ?
 
+**📊 Tableau de bord interactif (carte + simulateur) : https://sarr-fatou.github.io/immobilier-idf/**
+
 👉 **[Voir le notebook complet](notebooks/analyse_immobilier_idf.ipynb)** : code, graphiques et explications.
 
 ## Données
@@ -66,6 +68,7 @@ On prédit le prix de vente à partir de la surface, du nombre de pièces, de la
 ```bash
 pip install -r requirements.txt
 python src/download.py          # télécharge les données DVF 2024 (~5 Mo)
+python src/export_dashboard.py  # prépare les données du tableau de bord web (docs/)
 jupyter notebook notebooks/analyse_immobilier_idf.ipynb
 ```
 
